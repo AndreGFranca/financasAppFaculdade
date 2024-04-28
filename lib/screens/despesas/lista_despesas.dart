@@ -13,14 +13,6 @@ class ListaDespesas extends StatefulWidget {
 }
 
 class _ListaDespesasState extends State<ListaDespesas> {
-  @override
-  void initState() {
-    super.initState();
-      () async => await GraficoDao.testeConsulta();
-    // Chama o método para carregar a lista de categorias quando o widget é iniciado
-  }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +83,18 @@ class _ListaDespesasState extends State<ListaDespesas> {
                         itemCount: items.length,
                         itemBuilder: (BuildContext context, int index) {
                           final Fluxo despesas = items[index];
+                          despesas.onRemove = (){
+                            print('removendo $despesas');
+                            items.remove(despesas);
+                            setState(() {
+
+                            });
+                          };
+                          despesas.onEdit = (fluxo){
+                            setState(() {
+                              items[index] = fluxo;
+                            });
+                          };
                           return despesas;
                         },
                       );

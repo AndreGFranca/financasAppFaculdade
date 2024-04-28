@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import '../components/categoria.dart';
 import 'database.dart';
+import 'fluxo_dao.dart';
 
 class CategoriaDao {
   static const String tableSql = 'CREATE TABLE $_tablename('
@@ -11,6 +12,8 @@ class CategoriaDao {
   ;
 
   static const String _tablename = 'tbCategoria';
+  static const String _tablefluxo = 'tbFluxo';
+  static const String _id_categoria_fluxo = 'id_categoria';
   static const String _id_categoria = 'id';
   static const String _ds_nome = 'ds_nome';
   static const String _st_fluxo = 'st_fluxo';
@@ -23,23 +26,42 @@ class CategoriaDao {
     // if (itemExists.isEmpty) {
       print('A categoria não Existia.');
       return await bancoDeDados.insert(_tablename, taskMap);
-    // } else {
-    //   print('A tarefa já existia');
-    //   return await bancoDeDados.update(
-    //     _tablename,
-    //     taskMap,
-    //     where: '$_name = ?',
-    //     whereArgs: [tarefa.nome],
-    //   );
-    // }
+  }
+
+  edit(Categoria categoriaEdit) async{
+    final Database bancoDeDados = await getDatabase();
+    Map<String, dynamic> categoriaEditMap = toMap(categoriaEdit);
+    print(categoriaEdit.id);
+    return await bancoDeDados.update(
+      _tablename,
+      categoriaEditMap,
+      where: '$_id_categoria = ?',
+      whereArgs: [categoriaEdit.id],
+    );
+  }
+
+  delete(int idCategoria) async {
+    print('Deletando Renda: $idCategoria');
+    final Database bancoDeDados = await getDatabase();
+    await bancoDeDados.delete(
+      _tablefluxo,
+      where: '$_id_categoria_fluxo = ?',
+      whereArgs: [idCategoria],
+    );
+    return bancoDeDados.delete(
+      _tablename,
+      where: '$_id_categoria = ?',
+      whereArgs: [idCategoria],
+    );
   }
 
   Map<String, dynamic> toMap(Categoria categoria) {
     print('Convertendo to map:');
     final Map<String, dynamic> mapaDeCategorias = Map();
+    mapaDeCategorias[_id_categoria] = categoria.id;
     mapaDeCategorias[_ds_nome] = categoria.nome;
     mapaDeCategorias[_st_fluxo] = categoria.fluxo;
-    print('Mapa de Tarefas: $mapaDeCategorias');
+    print('Mapa de categoria: $mapaDeCategorias');
     return mapaDeCategorias;
   }
 
@@ -83,6 +105,7 @@ class CategoriaDao {
     final List<Categoria> categorias = [];
     for (Map<String, dynamic> linha in mapaDecategorias) {
       final Categoria categoria = Categoria(  linha[_ds_nome],  linha[_st_fluxo] == 1,id: linha[_id_categoria],);
+      print('${categoria.id} ${categoria.nome}');
       categorias.add(categoria);
     }
     print('Lista de Categorias $categorias');

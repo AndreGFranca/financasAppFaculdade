@@ -1,140 +1,324 @@
+
+import 'package:financas_rapida/components/categoria.dart';
+import 'package:financas_rapida/components/fluxo.dart';
+import 'package:financas_rapida/components/grafico_item.dart';
+import 'package:financas_rapida/components/grafico_item_pizza.dart';
+import 'package:intl/intl.dart';
+
 import 'database.dart';
 
 class GraficoDao {
-  // static const String tableSql = ' $_tablename('
-  //     '$_dt_inicio TEXT, '
-  //     '$_dt_final TEXT, '
-  //     ')';
+  String graficoLinha = '''
+  WITH RECURSIVE Months(month) AS (
+      -- CTE recursiva para gerar todos os meses entre as datas de início e final do relatório
+      SELECT strftime('%Y-%m-01', :dt_inicio) AS month -- Defina a data inicial do relatório aqui
+      UNION ALL
+      SELECT strftime('%Y-%m-01', date(month, '+1 month'))
+      FROM Months
+      WHERE month < strftime('%Y-%m-01', :dt_final) -- Defina a data final do relatório aqui
+    ),
+	RendaAnterior AS (
+		SELECT coalesce((SELECT
+			COALESCE(SUM(f.nr_valor), 0) as RendaMensalAnterior			
+		FROM tbFluxo f
+		WHERE st_fluxo = 1 AND
+		st_recorrente = 0
+-- 		AND strftime('%Y-%m', f.dt_inicio) = strftime('%Y-%m', m.month)
+		AND f.dt_inicio < :dt_inicio
+						),0) AS RendaMensalAnterior
+      --GROUP BY strftime('%Y-%m', f.dt_inicio)	  
+	) ,
+	DespesaAnterior AS (
+		SELECT coalesce((SELECT
+			COALESCE(SUM(f.nr_valor), 0) as DespesaMensalAnterior			
+		FROM tbFluxo f
+		WHERE st_fluxo = 0 AND
+		st_recorrente = 0
+		AND f.dt_inicio < :dt_inicio
+				),0) AS DespesaMensalAnterior
+      --GROUP BY strftime('%Y-%m', f.dt_inicio)	  
+	),
+	RendaRecorrenteAnt AS (
+		SELECT coalesce((SELECT
+			COALESCE(f.nr_valor * ((
+							(strftime('%Y', CASE WHEN :dt_inicio < f.dt_final OR f.dt_final = ''  THEN  :dt_inicio ELSE f.dt_final  END) - strftime('%Y', f.dt_inicio)) * 12 +	
+						     strftime('%m', CASE WHEN :dt_inicio < f.dt_final OR f.dt_final = '' THEN  :dt_inicio  ELSE  f.dt_final  END) - strftime('%m',  f.dt_inicio)
+							 
+						  )+1) ,0) AS AcumuloRec
+		FROM tbFluxo f
 
-  //consulta todas as tabelas
-  //"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
-  static String batatas = ''' Select SUBSTR(dt_inicio, 6, 2) from tbFluxo; ''';
-  static String teste = '''
-WITH RECURSIVE Months(month) AS (
-  -- CTE recursiva para gerar todos os meses entre as datas de início e final do relatório
-  SELECT strftime('%Y-%m-01', ?) AS month -- Defina a data inicial do relatório aqui
-  UNION ALL
-  SELECT strftime('%Y-%m-01', date(month, '+1 month'))
-  FROM Months
-  WHERE month < strftime('%Y-%m-01', ?) -- Defina a data final do relatório aqui
-),
-Balances AS (
-  -- CTE para calcular o balanço para cada mês
-  SELECT
-    m.month,
-    COALESCE(SUM(CASE WHEN f.st_fluxo = 1 THEN f.nr_valor ELSE 0 END), 0) AS total_renda,
-    COALESCE(SUM(CASE WHEN f.st_fluxo = 0 THEN f.nr_valor ELSE 0 END), 0) AS total_despesa
-  FROM Months m
-  LEFT JOIN tbFluxo f 
-  ON 
-    strftime('%Y-%m', f.dt_inicio) = strftime('%Y-%m', m.month) OR
-  (strftime('%Y-%m', f.dt_inicio) <= strftime('%Y-%m', m.month)
-		AND ((f.dt_final = '' AND f.st_recorrente = 1)
-  OR (strftime('%Y-%m', f.dt_final) >= strftime('%Y-%m', m.month) AND f.st_recorrente = 1)
-  ))
-  GROUP BY m.month
-),
-Recorrentes AS (
-  -- CTE para calcular rendas e despesas recorrentes
-  SELECT
-     f.dt_inicio AS month,
-    CASE WHEN f.st_fluxo = 1 THEN f.nr_valor ELSE -f.nr_valor END AS valor_recorrente,
-	CASE WHEN f.st_fluxo = 1 
-		THEN f.nr_valor * ((strftime('%Y', (SELECT month FROM Months LIMIT 1)) - strftime('%Y', f.dt_inicio)) * 12 +	strftime('%m', (SELECT month FROM Months LIMIT 1)) - strftime('%m',  f.dt_inicio)) 
-		ELSE -f.nr_valor * ((strftime('%Y', (SELECT month FROM Months LIMIT 1)) - strftime('%Y',  f.dt_inicio)) * 12 + strftime('%m', (SELECT month FROM Months LIMIT 1)) - strftime('%m',  f.dt_inicio)) 
-	END AS valor_recorrenteAcumulado,
-	 (SELECT month FROM Months LIMIT 1) as mult
-	 
-  FROM $_tablename f
-  WHERE f.st_recorrente = 1
+		WHERE st_fluxo = 1 AND
+		st_recorrente = 1
+		AND strftime('%Y-%m', f.dt_inicio) < strftime('%Y-%m',:dt_inicio)
+		),0) AS AcumuloRec
 
-  AND strftime('%Y-%m', f.dt_inicio) < (SELECT month FROM Months LIMIT 1) -- Verifica recorrência antes do início do relatório
-  AND (f.dt_final IS NULL OR f.dt_final = '' 
-  OR strftime('%Y-%m', f.dt_final) >= (SELECT month FROM Months ORDER BY month DESC LIMIT 1)) -- Verifica recorrência até o final do relatório
+	),
+	DespesaRecorrenteAnt AS (
+		SELECT coalesce((SELECT
+			COALESCE(f.nr_valor * ((
+							(strftime('%Y', CASE WHEN :dt_inicio < f.dt_final OR f.dt_final = ''  THEN  :dt_inicio ELSE f.dt_final  END) - strftime('%Y', f.dt_inicio)) * 12 +	
+						     strftime('%m', CASE WHEN :dt_inicio < f.dt_final OR f.dt_final = '' THEN  :dt_inicio  ELSE  f.dt_final  END) - strftime('%m',  f.dt_inicio)
+							 
+						  )+1) ,0) AS AcumuloRec
+		FROM tbFluxo f
+
+		WHERE st_fluxo = 0 AND
+		st_recorrente = 1
+		AND strftime('%Y-%m', f.dt_inicio) < strftime('%Y-%m',:dt_inicio)
+						),0) AS AcumuloRec
+	),
+	Renda AS (
+		SELECT
+			m.month,
+			COALESCE(SUM(f.nr_valor), 0) as RendaMensal			
+		FROM Months m
+		LEFT JOIN tbFluxo f
+		ON st_fluxo = 1 AND
+		st_recorrente = 0
+		AND strftime('%Y-%m', f.dt_inicio) = strftime('%Y-%m', m.month)
+		AND f.dt_inicio >= :dt_inicio
+      GROUP BY m.month
+	  
+	),
+	Despesa AS (
+		SELECT
+			m.month,
+			COALESCE(SUM(f.nr_valor), 0) as DespesaMensal
+		FROM Months m
+		LEFT JOIN tbFluxo f
+		ON st_fluxo = 0 AND
+		st_recorrente = 0
+		AND strftime('%Y-%m', f.dt_inicio) = strftime('%Y-%m', m.month)
+		AND f.dt_inicio >= :dt_inicio
+      GROUP BY m.month
+	  
+	), RendaRecorrente AS (
+		SELECT
+			m.month,
+			COALESCE(SUM(f.nr_valor), 0) as RendaMensal,
+			COALESCE(f.nr_valor * ((
+							(strftime('%Y', m.month) - strftime('%Y', f.dt_inicio)) * 12 +	
+						     strftime('%m', m.month) - strftime('%m',  f.dt_inicio)
+						  ) + 1),0) AS AcumuloRec
+		FROM Months m
+		LEFT JOIN tbFluxo f
+		ON st_fluxo = 1 AND
+		st_recorrente = 1
+		AND strftime('%Y-%m', f.dt_inicio) <= strftime('%Y-%m', m.month)
+		AND (m.month <= f.dt_final OR f.dt_final = '')
+		AND (f.dt_inicio >= :dt_inicio OR (f.dt_final >= :dt_inicio OR f.dt_final = ''))
+      GROUP BY m.month	  
+	),DespesaRecorrente AS (
+		SELECT
+			m.month,
+			COALESCE(SUM(f.nr_valor), 0) as DespesaMensal,
+			COALESCE(f.nr_valor * ((
+							(strftime('%Y', m.month) - strftime('%Y', f.dt_inicio)) * 12 +	
+						     strftime('%m', m.month) - strftime('%m',  f.dt_inicio)
+						  ) + 1),0) AS AcumuloRec
+		FROM Months m
+		LEFT JOIN tbFluxo f
+		ON st_fluxo = 0 AND
+		st_recorrente = 1
+		AND strftime('%Y-%m', f.dt_inicio) <= strftime('%Y-%m', m.month)
+		AND ((m.month <= f.dt_final) OR f.dt_final = '')
+		AND (f.dt_inicio >= :dt_inicio OR (f.dt_final >= :dt_inicio OR f.dt_final = ''))
+      GROUP BY m.month	  
+	),Balanco AS (
+				SELECT
+			m.month,
+			COALESCE(				
+				r.RendaMensal
+			,0)+
+			COALESCE(				
+				rr.RendaMensal
+			,0)	AS total_sem_despesa,
+			COALESCE(				
+				d.DespesaMensal
+			,0)+
+			COALESCE(				
+				dr.DespesaMensal
+			,0) AS total_despesa,
+			
+			COALESCE(
+			COALESCE(ra.RendaMensalAnterior,0) +
+			COALESCE(rra.AcumuloRec,0) +
+			COALESCE(-da.DespesaMensalAnterior,0) +
+			COALESCE(-dra.AcumuloRec,0)+
+			SUM(
+				r.RendaMensal
+			)OVER (ORDER BY m.month) + 
+			SUM(
+				rr.RendaMensal
+			)OVER (ORDER BY m.month) - 
+			SUM(
+				d.DespesaMensal
+			)OVER (ORDER BY m.month) - 
+			SUM(
+				dr.DespesaMensal
+			) OVER (ORDER BY m.month)
+			,0) AS balanco
+-- 						,ra.*
+-- 			,da.*
+-- 			,rra.*
+-- 			,dra.*
+		FROM Months m
+		LEFT JOIN Renda r ON r.month = m.month
+		LEFT JOIN RendaRecorrente rr ON rr.month = m.month
+		LEFT JOIN Despesa d ON d.month = m.month
+		LEFT JOIN DespesaRecorrente dr ON dr.month = m.month
+		CROSS JOIN DespesaRecorrenteAnt dra ON 1 = 1
+		CROSS JOIN RendaRecorrenteAnt rra ON 1 = 1
+		CROSS JOIN DespesaAnterior da ON 1 = 1
+		CROSS JOIN RendaAnterior ra ON 1 = 1
+	)
+	select * from Balanco
+  ''';
+
+  String graficoPizza = '''
+SELECT 
+	SUM(f.nr_valor) AS total_categoria,
+	c.ds_nome,
+	f.st_fluxo	
+FROM tbFluxo f
+INNER JOIN tbCategoria c ON  c.id = f.id_categoria
+WHERE 
+	(	f.dt_inicio >= :dt_inicio 
+		AND f.st_recorrente = 0 
+		AND f.dt_inicio <= :dt_final) 
+	OR
+	( 
+		f.dt_inicio <= :dt_final 
+		AND	f.st_recorrente = 1
+		AND (f.dt_final >= :dt_inicio OR f.dt_final = '')
+	)
+GROUP BY c.ds_nome, f.st_fluxo
+ORDER BY f.st_fluxo ASC
+  ''';
+
+  String listaFluxo = '''
+  
+  SELECT f.id, f.id_categoria, f.ds_nome, f.nr_valor, f.dt_inicio, f.dt_final, f.st_fluxo, f.st_recorrente, c.ds_nome as categoria from tbFluxo f INNER JOIN tbCategoria c ON c.id = f.id_categoria
+WHERE 
+(f.dt_inicio >= :dt_inicio  AND f.st_recorrente = 0 AND f.dt_inicio <= :dt_final)  OR ( 
+f.dt_inicio <= :dt_final AND
+f.st_recorrente = 1
+AND (f.dt_final >= :dt_inicio  OR f.dt_final = '')
 )
--- Selecionar o balanço total e calcular o saldo acumulador
-SELECT
-  b.month,
-  total_renda 
- -- + COALESCE(SUM(valor_recorrente), 0) 
-  AS total_sem_despesa, -- Total sem despesa incluindo recorrentes
-  total_despesa,
- 
-  --COALESCE(SUM(renda.nr_valor),0) --Valor das rendas não recorrentes Anterior a data de pesquisa
---Valor das despesas não recorrentes Anterior a data de pesquisa
 
-  COALESCE(r.valor_recorrenteAcumulado,0) + 
-  SUM(total_renda) OVER (ORDER BY b.month)
-  -   COALESCE(SUM(d.nr_valor),0) 
---  + valor_recorrente 
-  AS balanco
---  r.*,
--- SUM(d.nr_valor) as somaDespesa,-- Balanço acumulado incluindo recorrentes
---  COALESCE(SUM(renda.nr_valor),0) as somaRenda
-FROM Balances b
-LEFT JOIN Recorrentes r 
-ON strftime('%Y-%m', r.month) <= strftime('%Y-%m',b.month) -- Unir rendas/despesas recorrentes
+  ''';
 
-
-LEFT JOIN $_tablename d 
-ON( strftime('%Y-%m', d.dt_inicio) = strftime('%Y-%m',b.month) 
-OR (
-		--(SELECT strftime('%Y-%m',month) FROM Months LIMIT 1) >= strftime('%Y-%m', d.dt_inicio) 
-			--AND 
-			strftime('%Y-%m',b.month) >= strftime('%Y-%m', d.dt_inicio)) 
-	)
-AND d.st_recorrente = 0 AND d.st_fluxo = 0
-
-
-LEFT JOIN $_tablename renda 
-ON( strftime('%Y-%m', renda.dt_inicio) = strftime('%Y-%m',b.month) 
-OR (
-		--(SELECT strftime('%Y-%m',month) FROM Months LIMIT 1) >= strftime('%Y-%m', d.dt_inicio) 
-			--AND 
-			strftime('%Y-%m',b.month) >= strftime('%Y-%m', renda.dt_inicio)) 
-	)
-AND renda.st_recorrente = 0 AND renda.st_fluxo = 1
-
-GROUP BY b.month
-ORDER BY b.month;
-
-''';
   static const String _tablename = 'tbFluxo';
-  static const String _dt_inicio = 'dt_inicio';
-  static const String _dt_final = 'dt_final';
 
-  static Future testeConsulta() async {
-    try{
-      Map<String, dynamic> parametros = {
-        'dtInicio': '2024-01-01',
-        'dtFinal': '2024-12-31',
-      };
+  Future<List<GraficoItem>> Consulta(String dtInicio, String dtFinal) async {
       var bancoDedados = await getDatabase();
-      if(bancoDedados.isOpen){
+
+      var dataInicial = DateFormat('yyyy-MM-dd').format(DateTime(int.parse(dtInicio.split('-')[0]),int.parse(dtInicio.split('-')[1]),1));
+      var dataFinal = DateFormat('yyyy-MM-dd').format(DateTime(int.parse(dtFinal.split('-')[0]),int.parse(dtFinal.split('-')[1])+1,0));
         // await bancoDedados.execute('PRAGMA busy_timeout = 100000;');
+      print(dataInicial);
+      print(dataFinal);
         print('Banco Aberto');
-        var batata = await bancoDedados.transaction((txn) async =>  await txn.rawQuery(teste,[
-          '2024-01-01',
-          '2024-12-31'
-        ]));
-        print(teste);
-        batata.forEach((element) {
-          print(element);
-        });
-        print(batata);
-        await bancoDedados.close();
-      }
+        var query = graficoLinha.replaceAll(RegExp(r':dt_inicio'),'\'$dataInicial\'' );
+        query = query.replaceAll(RegExp(r':dt_final'),'\'$dataFinal\'');
+        final List<Map<String, dynamic>> result =
+            await bancoDedados.rawQuery(query);
+        return toList(result);
+  }
 
-      //     .then(
-      //         (value){
-      //       print(value);
-      //     }
-      // );
 
-    }catch(ex){
-      print(ex.toString());
-      throw Exception();
+  List<GraficoItem> toList(List<Map<String, dynamic>> mapaDeItems) {
+    print('Convertendo to List:');
+    final List<GraficoItem> items = [];
+
+    for (Map<String, dynamic> linha in mapaDeItems) {
+
+      final GraficoItem item = GraficoItem(
+        month: linha['month'],
+        total_sem_despesa: double.parse(linha['total_sem_despesa'].toString()),
+        total_despesa: double.parse(linha['total_despesa'].toString()),
+        balanco: double.parse(linha['balanco'].toString()),
+      );
+      items.add(item);
     }
+    print(items);
+    return items;
+  }
+
+  List<GraficoItemPizza> toListPizza(List<Map<String, dynamic>> mapaDeItems) {
+    print('Convertendo to List:');
+    final List<GraficoItemPizza> items = [];
+    for (Map<String, dynamic> linha in mapaDeItems) {
+      print(linha);
+      final GraficoItemPizza item = GraficoItemPizza(
+        total_categoria: double.parse(linha['total_categoria'].toStringAsFixed(2)),
+        st_fluxo: linha['st_fluxo'] == 1,
+        ds_nome: linha['ds_nome'],
+      );
+      items.add(item);
+    }
+    return items;
+  }
+
+  List<Fluxo> toListFluxo(List<Map<String, dynamic>> mapaDeItems) {
+    print('Convertendo to List:');
+    final List<Fluxo> fluxos = [];
+    for (Map<String, dynamic> linha in mapaDeItems) {
+
+      final Fluxo fluxo = Fluxo(
+        id: linha['id'],
+        dsNome: linha['ds_nome'],
+        idCategoria: linha['id_categoria'],
+        nrValor: linha['nr_valor'],
+        stRecorrencia: linha['st_recorrente'] == 1,
+        dtInicio: linha['dt_inicio'],
+        dtFinal: linha['dt_final'],
+        stFluxo: linha['st_fluxo'] == 1,
+        categoria: Categoria(
+            linha['categoria'],
+            linha['st_fluxo'] == 1,
+            id: linha['id_categoria']
+        ),
+        isDeletable: false,
+        isEditable: false,
+        showCategory: true,
+      );
+      fluxos.add(fluxo);
+    }
+    print('Lista de Fluxos $fluxos');
+    return fluxos;
+  }
+
+  Future<List<GraficoItemPizza>> ConsultaMes(String dtMes) async{
+    var bancoDedados = await getDatabase();
+    print('mes $dtMes');
+    var anoAux = int.parse(dtMes.split('/')[1]);
+    var mesAux = int.parse(dtMes.split('/')[0]);
+    var dataInicial = DateFormat('yyyy-MM-dd').format(DateTime(anoAux,mesAux,1));
+    var dataFinal = DateFormat('yyyy-MM-dd').format(DateTime(anoAux,mesAux+1,0));
+    print(dataInicial);
+    var query = graficoPizza.replaceAll(RegExp(r':dt_inicio'),'\'$dataInicial\'' );
+    query = query.replaceAll(RegExp(r':dt_final'),'\'$dataFinal\'');
+    final List<Map<String, dynamic>> result =
+        await bancoDedados.rawQuery(query);
+    return toListPizza(result);
+  }
+
+  Future<List<Fluxo>> ConsultaMesFluxo(String dtMes) async{
+    var bancoDedados = await getDatabase();
+
+    var anoAux = int.parse(dtMes.split('/')[1]);
+    var mesAux = int.parse(dtMes.split('/')[0]);
+    var dataInicial = DateFormat('yyyy-MM-dd').format(DateTime(anoAux,mesAux,1));
+    var dataFinal = DateFormat('yyyy-MM-dd').format(DateTime(anoAux,mesAux+1,0));
+    // await bancoDedados.execute('PRAGMA busy_timeout = 100000;');
+    print(dataInicial);
+    print(dataFinal);
+    var query = listaFluxo.replaceAll(RegExp(r':dt_inicio'),'\'$dataInicial\'' );
+    query = query.replaceAll(RegExp(r':dt_final'),'\'$dataFinal\'');
+    final List<Map<String, dynamic>> result =
+    await bancoDedados.rawQuery(query);
+    return toListFluxo(result);
 
   }
 }

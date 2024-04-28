@@ -1,20 +1,36 @@
+import 'package:financas_rapida/dados/categoria_dao.dart';
+import 'package:financas_rapida/screens/categorias/edit_form_categoria.dart';
 import 'package:flutter/material.dart';
 
-class Categoria extends StatelessWidget {
+import '../utils/dialog_alert.dart';
+
+class Categoria extends StatefulWidget {
   final String nome;
   final bool fluxo;
   final int? id;
+  late Function? onRemove;
 
-  const Categoria( this.nome,this.fluxo,{super.key, this.id,});
+   Categoria(
+    this.nome,
+    this.fluxo,
+    {
+    super.key,
+    this.id,
+    this.onRemove,
+  });
 
+  @override
+  State<Categoria> createState() => _CategoriaState();
+}
 
+class _CategoriaState extends State<Categoria> {
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Container(
         decoration: BoxDecoration(
-          color: fluxo ? Colors.green: Colors.red,
+          color: widget.fluxo ? Colors.green : Colors.red,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -35,7 +51,7 @@ class Categoria extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Nome: $nome',
+                    'Nome: ${widget.nome}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -44,7 +60,7 @@ class Categoria extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    fluxo? 'Renda':'Despesa',
+                    widget.fluxo ? 'Renda' : 'Despesa',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -55,17 +71,33 @@ class Categoria extends StatelessWidget {
             ),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (newContext) => FormEditCategoria(
+                                categoriaEdit: widget,
+                              )),
+                    ).then((value) => setState(() {}));
+                  },
                   icon: const Icon(
                     Icons.edit,
                     color: Colors.white70,
                   )),
-              IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.delete,
-                    color: Colors.white70,
-                  )),
+              DialogAlerta(
+                texto: 'Deseja mesmo excluir ${widget.nome} e todas as rendas/despesas atreladas a ele?',
+                title: 'Confirmar',
+                cancelar: () {},
+                confirmar: ()async {
+                  print('teste');
+                  await CategoriaDao().delete(widget.id!);
+                  widget.onRemove!();
+                },
+                child: Icon(
+                  Icons.delete,
+                  color: Colors.white70,
+                ),
+              ),
             ]),
           ],
         ),

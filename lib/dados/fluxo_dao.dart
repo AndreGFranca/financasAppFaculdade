@@ -27,26 +27,35 @@ class FluxoDao {
   static const String _st_recorrente = 'st_recorrente';
 
   save(Fluxo fluxo) async {
-    print('Iniciando o save: ');
     final Database bancoDeDados = await getDatabase();
     // var itemExists = await find(tarefa.nome);
     Map<String, dynamic> taskMap = toMap(fluxo);
     // if (itemExists.isEmpty) {
     print('A categoria não Existia.');
     return await bancoDeDados.insert(_tablename, taskMap);
-    // } else {
-    //   print('A tarefa já existia');
-    //   return await bancoDeDados.update(
-    //     _tablename,
-    //     taskMap,
-    //     where: '$_name = ?',
-    //     whereArgs: [tarefa.nome],
-    //   );
-    // }
+  }
+
+  edit(Fluxo fluxoEdit) async{
+    final Database bancoDeDados = await getDatabase();
+    Map<String, dynamic> fluxoEditMap = toMap(fluxoEdit);
+      return await bancoDeDados.update(
+        _tablename,
+        fluxoEditMap,
+        where: '$_id_fluxo = ?',
+        whereArgs: [fluxoEdit.id],
+      );
+  }
+
+  delete(int idFluxo) async {
+    final Database bancoDeDados = await getDatabase();
+    return bancoDeDados.delete(
+      _tablename,
+      where: '$_id_fluxo = ?',
+      whereArgs: [idFluxo],
+    );
   }
 
   Map<String, dynamic> toMap(Fluxo fluxo) {
-    print('Convertendo to map:');
     final Map<String, dynamic> mapaDeFluxos = Map();
     mapaDeFluxos[_id_fluxo] = fluxo.id;
     mapaDeFluxos[_ds_nome] = fluxo.dsNome;
@@ -56,64 +65,24 @@ class FluxoDao {
     mapaDeFluxos[_dt_inicio] = fluxo.dtInicio;
     mapaDeFluxos[_dt_final] = fluxo.dtFinal;
     mapaDeFluxos[_st_fluxo] = fluxo.stFluxo;
-
-    // ,  static const String _tablename = 'tbFluxo';
-    // static const String _id_fluxo = 'id';
-    // static const String _ds_nome = 'ds_nome';
-    // static const String _id_categoria = 'id_categoria';
-    // static const String _nr_valor = 'nr_valor';
-    // static const String _st_recorrente = 'st_recorrente';
-    // static const String _dt_inicio = 'dt_inicio';
-    // static const String _dt_final = 'dt_final';
-    // static const String _st_fluxo = 'st_fluxo';
-    print('Mapa de Tarefas: $mapaDeFluxos');
     return mapaDeFluxos;
   }
 
   Future<List<Fluxo>> findAllFluxos(int stFluxo) async {
     try {
-      print('Acessando o findAllRendas: ');
       final Database bancoDeDados = await getDatabase();
       final List<Map<String, dynamic>> result = await bancoDeDados.query(
         _tablename,
         where: '$_st_fluxo = ?',
         whereArgs: [stFluxo],
       );
-      print('Procurando dados no banco de dados... encontrado: $result');
       return toList(result);
     } catch (ex) {
-      print(ex.toString());
       throw Exception('teste');
     }
   }
 
-  // Future<List<Categoria>> findAllRendas() async {
-  //   print('Acessando o findAllRendas: ');
-  //   final Database bancoDeDados = await getDatabase();
-  //
-  //   final List<Map<String, dynamic>> result = await bancoDeDados.query(
-  //     _tablename,
-  //     where: '$_st_fluxo = 1',
-  //   );
-  //
-  //   print('Procurando dados no banco de dados... encontrado: $result');
-  //   return toList(result);
-  // }
-  // Future<List<Categoria>> findAllDespesas() async {
-  //   print('Acessando o findAllDespesas: ');
-  //   final Database bancoDeDados = await getDatabase();
-  //
-  //   final List<Map<String, dynamic>> result = await bancoDeDados.query(
-  //     _tablename,
-  //     where: '$_st_fluxo = 0',
-  //   );
-  //
-  //   print('Procurando dados no banco de dados... encontrado: $result');
-  //   return toList(result);
-  // }
-
   List<Fluxo> toList(List<Map<String, dynamic>> mapaDeFluxos) {
-    print('Convertendo to List:');
     final List<Fluxo> fluxos = [];
     for (Map<String, dynamic> linha in mapaDeFluxos) {
       final Fluxo fluxo = Fluxo(
@@ -128,7 +97,8 @@ class FluxoDao {
       );
       fluxos.add(fluxo);
     }
-    print('Lista de Fluxos $fluxos');
     return fluxos;
   }
+
+
 }

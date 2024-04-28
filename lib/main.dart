@@ -1,3 +1,4 @@
+import 'package:financas_rapida/screens/Graficos/result_month_grafico.dart';
 import 'package:financas_rapida/screens/form_name.dart';
 import 'package:financas_rapida/screens/initial_screen.dart';
 import 'package:financas_rapida/screens/menu.dart';
@@ -42,7 +43,7 @@ class _MyHomePageState extends State<MyHomePage> {
       //   backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       //   title: Text(widget.title),
       // ),
-      body: MenuPrincipal(),
+      body: SplashScreen(),
     );
   }
 }

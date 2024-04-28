@@ -3,20 +3,27 @@ import 'package:financas_rapida/dados/categoria_dao.dart';
 import 'package:financas_rapida/utils/checkbox_button.dart';
 import 'package:flutter/material.dart';
 
-class FormCategoria extends StatefulWidget {
+class FormEditCategoria extends StatefulWidget {
   bool checkBoxInput = true;
-  final BuildContext categoriaContext;
 
-  FormCategoria({super.key, required this.categoriaContext});
+  final Categoria categoriaEdit;
+  FormEditCategoria({super.key, required this.categoriaEdit});
 
   @override
-  State<FormCategoria> createState() => _FormCategoriaState();
+  State<FormEditCategoria> createState() => _FormEditCategoriaState();
 }
 
-class _FormCategoriaState extends State<FormCategoria> {
+class _FormEditCategoriaState extends State<FormEditCategoria> {
   TextEditingController dsNomeController = TextEditingController();
   TextEditingController stFluxoController = TextEditingController(text: '1');
 
+  @override
+  void initState() {
+    super.initState();
+    dsNomeController.text = widget.categoriaEdit.nome;
+    stFluxoController.text = widget.categoriaEdit.fluxo ? '1': '0';
+    // Chama o método para carregar a lista de categorias quando o widget é iniciado
+  }
   final _formKey = GlobalKey<FormState>();
 
   bool valueValidator(String? value) {
@@ -42,7 +49,7 @@ class _FormCategoriaState extends State<FormCategoria> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
-            'Cadastrar',
+            'Editar',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 25,
@@ -60,10 +67,10 @@ class _FormCategoriaState extends State<FormCategoria> {
                       end: Alignment(1, 0.5),
                       // stops: <double>[0.2,1],
                       colors: <Color>[
-                    Color.fromRGBO(255, 255, 255, 100),
-                    // Color.fromRGBO(154, 240, 124, 100),
-                    Color.fromRGBO(255, 125, 211, 100),
-                  ])),
+                        Color.fromRGBO(255, 255, 255, 100),
+                        // Color.fromRGBO(154, 240, 124, 100),
+                        Color.fromRGBO(255, 125, 211, 100),
+                      ])),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -73,35 +80,36 @@ class _FormCategoriaState extends State<FormCategoria> {
                     TextFormField(
                       validator: (String? value) {
                         if (valueValidator(value)) {
-                          return 'Insira o nome da Categoria';
+                          return 'Insira o nome da categoria';
                         }
                         return null;
                       },
                       controller: dsNomeController,
                       decoration: const InputDecoration(
-                        hintText: 'Nome da Categoria',
+                        hintText: 'Nome da categoria',
                         fillColor: Colors.transparent,
                         filled: true,
                       ),
                     ),
-                    CheckBoxBotao(label: 'Renda?', valor: stFluxoController),
                     ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            CategoriaDao().save(Categoria(
+                            var categoria = Categoria(
                               dsNomeController.text,
                               stFluxoController.text == '1',
-                            ));
+                              id: widget.categoriaEdit.id,
+                            );
+                            CategoriaDao().edit(categoria);
 
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Criando uma nova Categoria'),
+                              SnackBar(
+                                content: Text('Editando a ${widget.categoriaEdit.nome}'),
                               ),
                             );
                             Navigator.pop(context);
                           }
                         },
-                        child: Text('Cadastrar'))
+                        child: Text('Ecitar'))
                   ],
                 ),
               ),

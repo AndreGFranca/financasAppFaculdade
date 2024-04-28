@@ -5,6 +5,7 @@ import 'package:financas_rapida/dados/fluxo_dao.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 
 import '../../utils/checkbox_button.dart';
 
@@ -86,7 +87,7 @@ class _FormRendaState extends State<FormRenda> {
 
   DateTime selectedDate = DateTime.now();
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
     final DateTime? picked = await showDatePicker(
         context: context,
         initialDate: selectedDate,
@@ -95,8 +96,10 @@ class _FormRendaState extends State<FormRenda> {
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
-        dtInicioController.text =
-            '${picked.year}-${picked.month}-${picked.day}';
+        // Formatando a data
+        String formattedDate = DateFormat('yyyy-MM-dd').format(picked);
+
+        controller.text = formattedDate;
       });
     }
   }
@@ -247,21 +250,23 @@ class _FormRendaState extends State<FormRenda> {
                       children: [
                         TextFormField(
                           controller: dtInicioController,
+                          enabled: false,
                           decoration: const InputDecoration(
-                            hintText: 'dd/mm/yyyy',
+                            hintText: 'Data de Incio',
                             fillColor: Colors.transparent,
                             filled: true,
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: () => _selectDate(context),
+                          onPressed: () => _selectDate(context, dtInicioController),
                           child: const Text('Select date'),
                         ),
                       ],
                     ),
                     CheckBoxBotao(
                       label: 'Recorrente',
-                      valor: stFluxoController,
+                      valor: stRecorrenciaController,
+                      checkBoxInput: true,
                     ),
                     TextFormField(
                       controller: nrValorController,
@@ -281,25 +286,20 @@ class _FormRendaState extends State<FormRenda> {
                     ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            // print(nameController.text);
-                            // print(int.parse(difficultyController.text));
-                            // print(imageController.text);
-                            FluxoDao().save(Fluxo(
+
+                            var fluxo = Fluxo(
                                 dsNome: dsNomeController.text,
                                 idCategoria:
-                                    int.parse(idCategoriaController.text),
+                                int.parse(idCategoriaController.text),
                                 nrValor: double.parse(nrValorController.text),
                                 stFluxo: true,
                                 stRecorrencia:
-                                    stRecorrenciaController.text == '1'
-                                        ? true
-                                        : false,
-                                dtInicio: dtInicioController.text));
+                                stRecorrenciaController.text == '1'
+                                    ? true
+                                    : false,
+                                dtInicio: dtInicioController.text);
 
-                            // TaskInherited.of(widget.taskContext).newTask(
-                            //     nameController.text,
-                            //     imageController.text,
-                            //     int.parse(difficultyController.text));
+                            FluxoDao().save(fluxo);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Criando uma nova Renda'),

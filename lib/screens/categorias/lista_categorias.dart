@@ -33,77 +33,82 @@ class _ListaCategoriasState extends State<ListaCategorias> {
                 end: Alignment(1, 0.5),
                 // stops: <double>[0.2,1],
                 colors: <Color>[
-                  Color.fromRGBO(255, 255, 255, 100),
-                  // Color.fromRGBO(154, 240, 124, 100),
-                  Color.fromRGBO(255, 125, 211, 100),
-                ])),
+              Color.fromRGBO(255, 255, 255, 100),
+              // Color.fromRGBO(154, 240, 124, 100),
+              Color.fromRGBO(255, 125, 211, 100),
+            ])),
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: FutureBuilder<List<Categoria>>(
-            future: CategoriaDao().findAll(),
-            builder: (context, snapshot) {
-              List<Categoria>? items = snapshot.data;
-              print(snapshot.connectionState);
-              switch (snapshot.connectionState) {
-                case ConnectionState.none:
-                  return const Center(
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        Text('Carregando...'),
-                      ],
-                    ),
-                  );
-                  break;
-                case ConnectionState.waiting:
-                  return const Center(
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        Text('Carregando...'),
-                      ],
-                    ),
-                  );
-                  break;
-                case ConnectionState.active:
-                  return const Center(
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        Text('Carregando...'),
-                      ],
-                    ),
-                  );
-                  break;
-                case ConnectionState.done:
-                  if (snapshot.hasData && items != null) {
-                    if (items.isNotEmpty) {
-                      return ListView.builder(
-                        itemCount: items.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final Categoria categorias = items[index];
-                          return categorias;
-                        },
-                      );
-                    }
+            padding: const EdgeInsets.only(bottom: 80),
+            child: FutureBuilder<List<Categoria>>(
+              future: CategoriaDao().findAll(),
+              builder: (context, snapshot) {
+                List<Categoria>? items = snapshot.data;
+                print(snapshot.connectionState);
+                switch (snapshot.connectionState) {
+                  case ConnectionState.none:
                     return const Center(
                       child: Column(
                         children: [
-                          Icon(Icons.error_outline, size: 128),
-                          Text(
-                            'Não há nenhuma Categoria',
-                            style: TextStyle(fontSize: 32),
-                          )
+                          CircularProgressIndicator(),
+                          Text('Carregando...'),
                         ],
                       ),
                     );
-                  }
-                  return const Text('Erro ao carregar Categorias ');
-                  break;
-              }
-              return Text('Erro desconhecido');
-            },)
-        ),
+                    break;
+                  case ConnectionState.waiting:
+                    return const Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          Text('Carregando...'),
+                        ],
+                      ),
+                    );
+                    break;
+                  case ConnectionState.active:
+                    return const Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          Text('Carregando...'),
+                        ],
+                      ),
+                    );
+                    break;
+                  case ConnectionState.done:
+                    if (snapshot.hasData && items != null) {
+                      if (items.isNotEmpty) {
+                        return ListView.builder(
+                          itemCount: items.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final Categoria categorias = items[index];
+                            categorias.onRemove = () {
+                              print('removendo $categorias');
+                              items.remove(categorias);
+                              setState(() {});
+                            };
+                            return categorias;
+                          },
+                        );
+                      }
+                      return const Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.error_outline, size: 128),
+                            Text(
+                              'Não há nenhuma Categoria',
+                              style: TextStyle(fontSize: 32),
+                            )
+                          ],
+                        ),
+                      );
+                    }
+                    return const Text('Erro ao carregar Categorias ');
+                    break;
+                }
+                return Text('Erro desconhecido');
+              },
+            )),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -114,9 +119,7 @@ class _ListaCategoriasState extends State<ListaCategorias> {
                 categoriaContext: context,
               ),
             ),
-          ).then((value) => setState(() {
-            print('recarregando Tela de categorias');
-          }));
+          ).then((value) => setState(() {}));
         },
         child: Icon(Icons.add),
       ),

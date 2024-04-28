@@ -80,6 +80,19 @@ class _ListaRendasState extends State<ListaRendas> {
                         itemCount: items.length,
                         itemBuilder: (BuildContext context, int index) {
                           final Fluxo rendas = items[index];
+                          rendas.onRemove = (){
+                            print('removendo $rendas');
+                            items.remove(rendas);
+                            setState(() {
+
+                            });
+                          };
+                          rendas.onEdit = (newItem){
+                            setState(() {
+                              items[index] = newItem;
+                            });
+                          };
+
                           return rendas;
                         },
                       );

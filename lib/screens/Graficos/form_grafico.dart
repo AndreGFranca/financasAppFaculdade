@@ -2,14 +2,18 @@ import 'package:financas_rapida/components/categoria.dart';
 import 'package:financas_rapida/components/fluxo.dart';
 import 'package:financas_rapida/dados/categoria_dao.dart';
 import 'package:financas_rapida/dados/fluxo_dao.dart';
+import 'package:financas_rapida/screens/Graficos/result_grafico.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 
 import '../../utils/checkbox_button.dart';
 
 class FormGrafico extends StatefulWidget {
   FormGrafico({super.key});
+
 
   @override
   State<FormGrafico> createState() => _FormGraficoState();
@@ -28,19 +32,33 @@ class _FormGraficoState extends State<FormGrafico> {
     return false;
   }
 
-  DateTime selectedDate = DateTime.now();
+  DateTime selectedDateInitial = DateTime.now();
+  DateTime selectedDateFinal = DateTime.now();
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, TextEditingController controller,DateTime modify,bool inicial) async {
     final DateTime? picked = await showDatePicker(
         context: context,
-        initialDate: selectedDate,
-        firstDate: DateTime(2015, 8),
-        lastDate: DateTime(2101));
-    if (picked != null && picked != selectedDate) {
+        initialDate: modify,
+        initialDatePickerMode: DatePickerMode.year,
+        firstDate: DateTime(1900, 8),
+        lastDate: DateTime(2101),
+      // selectableDayPredicate: (DateTime date) {
+      //   // Permite selecionar somente os meses completos
+      //   return date.day == DateTime(date.year, date.month + 1, 0).day;
+      // },
+    );
+    if (picked != null && picked != modify) {
       setState(() {
-        selectedDate = picked;
-        dtInicioController.text =
-            '${picked.year}-${picked.month}-${picked.day}';
+        modify = picked;
+        // Formatando a data
+        String formattedDate;
+        if(inicial){
+          formattedDate = DateFormat('yyyy-MM').format(DateTime(picked.year,picked.month,1));
+        }else{
+          formattedDate = DateFormat('yyyy-MM').format(picked);
+        }
+
+        controller.text = formattedDate;
       });
     }
   }
@@ -70,10 +88,10 @@ class _FormGraficoState extends State<FormGrafico> {
                       end: Alignment(1, 0.5),
                       // stops: <double>[0.2,1],
                       colors: <Color>[
-                    Color.fromRGBO(255, 255, 255, 100),
-                    // Color.fromRGBO(154, 240, 124, 100),
-                    Color.fromRGBO(172, 209, 255, 100),
-                  ])),
+                        Color.fromRGBO(255, 255, 255, 100),
+                        // Color.fromRGBO(154, 240, 124, 100),
+                        Color.fromRGBO(172, 209, 255, 100),
+                      ])),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -84,15 +102,16 @@ class _FormGraficoState extends State<FormGrafico> {
                       alignment: AlignmentDirectional.centerEnd,
                       children: [
                         TextFormField(
+                          enabled: false,
                           controller: dtInicioController,
                           decoration: const InputDecoration(
-                            hintText: 'dd/mm/yyyy',
+                            hintText: 'yyyy-mm',
                             fillColor: Colors.transparent,
                             filled: true,
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: () => _selectDate(context),
+                          onPressed: () => _selectDate(context,dtInicioController,selectedDateInitial, true),
                           child: const Text('Select date'),
                         ),
                       ],
@@ -101,15 +120,16 @@ class _FormGraficoState extends State<FormGrafico> {
                       alignment: AlignmentDirectional.centerEnd,
                       children: [
                         TextFormField(
+                          enabled: false,
                           controller: dtFinalController,
                           decoration: const InputDecoration(
-                            hintText: 'dd/mm/yyyy',
+                            hintText: 'yyyy-mm',
                             fillColor: Colors.transparent,
                             filled: true,
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: () => _selectDate(context),
+                          onPressed: () => _selectDate(context, dtFinalController,selectedDateFinal, false),
                           child: const Text('Select date'),
                         ),
                       ],
@@ -117,22 +137,22 @@ class _FormGraficoState extends State<FormGrafico> {
                     ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            // print(nameController.text);
-                            // print(int.parse(difficultyController.text));
-                            // print(imageController.text);
-                            // FluxoDao().save(Grafico(
-                            //     dtInicio: dtInicioController.text));
-
-                            // TaskInherited.of(widget.taskContext).newTask(
-                            //     nameController.text,
-                            //     imageController.text,
-                            //     int.parse(difficultyController.text));
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Consultando'),
                               ),
                             );
-                            // Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (newContext) => ResultGrafico(dtInicio:  dtInicioController.text,dtFinal:  dtFinalController.text,),
+                              ),
+                            ).then((context) {
+                              SystemChrome.setPreferredOrientations([
+                                DeviceOrientation.portraitUp, // Orientação retrato (vertical)
+                                DeviceOrientation.portraitDown,
+                              ]);
+                            });
                           }
                         },
                         child: Text('Consultar'))

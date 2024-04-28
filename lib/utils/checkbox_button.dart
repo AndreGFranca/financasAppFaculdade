@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CheckBoxBotao extends StatefulWidget {
-  bool _checkBoxInput = true;
-  final bool checkBoxInput;
+  late bool checkBoxInput;
   final TextEditingController valor;
   final String label;
   CheckBoxBotao({super.key, required this.label, required this.valor,this.checkBoxInput = true});
@@ -16,10 +15,9 @@ class _CheckBoxBotaoState extends State<CheckBoxBotao> {
   @override
   void initState() {
     super.initState();
-    print(widget._checkBoxInput );
-    print(widget.checkBoxInput);
-    widget._checkBoxInput = widget.checkBoxInput;
-    print(widget._checkBoxInput );
+    setState(() {
+      widget.valor.text = widget.checkBoxInput ? '1' : '0';
+    });
     // Chama o método para carregar a lista de categorias quando o widget é iniciado
   }
 
@@ -40,12 +38,12 @@ class _CheckBoxBotaoState extends State<CheckBoxBotao> {
 
             ),),
             Checkbox(
-              value: widget._checkBoxInput,
+              value: widget.checkBoxInput,
               onChanged: (bool? value) {
                 setState(
                       () {
-                    widget._checkBoxInput = !widget._checkBoxInput;
-                    widget.valor.text = widget._checkBoxInput ? '1' : '0';
+                    widget.checkBoxInput = !widget.checkBoxInput;
+                    widget.valor.text = widget.checkBoxInput ? '1' : '0';
                   },
                 );
               },
