@@ -9,14 +9,15 @@ class Categoria extends StatefulWidget {
   final bool fluxo;
   final int? id;
   late Function? onRemove;
+  late Function? onEdit;
 
-   Categoria(
+  Categoria(
     this.nome,
-    this.fluxo,
-    {
+    this.fluxo, {
     super.key,
     this.id,
     this.onRemove,
+    this.onEdit,
   });
 
   @override
@@ -78,17 +79,21 @@ class _CategoriaState extends State<Categoria> {
                           builder: (newContext) => FormEditCategoria(
                                 categoriaEdit: widget,
                               )),
-                    ).then((value) => setState(() {}));
+                    ).then((value) {
+                      print(value);
+                      widget.onEdit!(value);
+                    });
                   },
                   icon: const Icon(
                     Icons.edit,
                     color: Colors.white70,
                   )),
               DialogAlerta(
-                texto: 'Deseja mesmo excluir ${widget.nome} e todas as rendas/despesas atreladas a ele?',
+                texto:
+                    'Deseja mesmo excluir ${widget.nome} e todas as rendas/despesas atreladas a ele?',
                 title: 'Confirmar',
                 cancelar: () {},
-                confirmar: ()async {
+                confirmar: () async {
                   print('teste');
                   await CategoriaDao().delete(widget.id!);
                   widget.onRemove!();

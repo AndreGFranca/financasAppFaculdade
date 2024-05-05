@@ -87,6 +87,11 @@ class _ListaCategoriasState extends State<ListaCategorias> {
                               items.remove(categorias);
                               setState(() {});
                             };
+                            categorias.onEdit = (categoria){
+                              setState(() {
+                                items[index] = categoria;
+                              });
+                            };
                             return categorias;
                           },
                         );

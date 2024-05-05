@@ -44,7 +44,7 @@ class MenuPrincipal extends StatelessWidget {
                     fontFamily: 'robotto',
                     fontWeight: FontWeight.bold),
               ),
-              if(nome.toUpperCase() == 'RITA')
+              if(nome.toUpperCase().contains('RITA'))
                 Text(
                   "Eu te amo ❤",
                   style: TextStyle(

@@ -106,10 +106,10 @@ class _FormEditCategoriaState extends State<FormEditCategoria> {
                                 content: Text('Editando a ${widget.categoriaEdit.nome}'),
                               ),
                             );
-                            Navigator.pop(context);
+                            Navigator.pop(context, categoria);
                           }
                         },
-                        child: Text('Ecitar'))
+                        child: Text('Editar'))
                   ],
                 ),
               ),

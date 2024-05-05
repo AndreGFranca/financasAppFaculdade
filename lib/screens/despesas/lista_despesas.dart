@@ -84,7 +84,6 @@ class _ListaDespesasState extends State<ListaDespesas> {
                         itemBuilder: (BuildContext context, int index) {
                           final Fluxo despesas = items[index];
                           despesas.onRemove = (){
-                            print('removendo $despesas');
                             items.remove(despesas);
                             setState(() {
 

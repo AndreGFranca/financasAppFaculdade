@@ -25,7 +25,7 @@ class _PiecePizzaChartState extends State<PiecePizzaChart> {
         case true:
           return PieChartSectionData(
             color: Colors.green,
-            value: items[i].total_categoria,
+            value: widget.items[i].total_categoria.sign == 1?widget.items[i].total_categoria.sign: -widget.items[i].total_categoria.sign,
             title: '${items[i].total_categoria}',
             radius: radius,
             titleStyle: TextStyle(
@@ -39,7 +39,7 @@ class _PiecePizzaChartState extends State<PiecePizzaChart> {
         case false:
           return PieChartSectionData(
             color: Colors.red,
-            value: items[i].total_categoria,
+            value: widget.items[i].total_categoria.sign == 1?widget.items[i].total_categoria.sign: -widget.items[i].total_categoria.sign,
             title: '${items[i].total_categoria}',
             radius: radius,
             titleStyle: TextStyle(
@@ -53,7 +53,7 @@ class _PiecePizzaChartState extends State<PiecePizzaChart> {
         default:
           return PieChartSectionData(
             color: Colors.purple,
-            value: widget.items[i].total_categoria,
+            value: widget.items[i].total_categoria.sign == 1?widget.items[i].total_categoria.sign: -widget.items[i].total_categoria.sign,
             title: '${widget.items[i].total_categoria.toStringAsFixed(2)}',
             radius: radius,
             titleStyle: TextStyle(
